@@ -2,37 +2,78 @@ name: Build AnonMC
 
 on:
   push:
+    branches: [main]
   pull_request:
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Checkout source
+        shell: bash
+        run: |
+          set -euxo pipefail
+          git init .
+          git remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+          git fetch --depth=1 origin "$GITHUB_SHA"
+          git checkout --detach FETCH_HEAD
 
-      - name: Set up Java 25
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '25'
+      - name: Install Java 25
+        shell: bash
+        run: |
+          set -euxo pipefail
+          curl -fL --retry 5 --retry-delay 2 \
+            "https://api.adoptium.net/v3/binary/latest/25/ga/linux/x64/jdk/hotspot/normal/eclipse" \
+            -o "$RUNNER_TEMP/jdk25.tar.gz"
+          mkdir -p "$RUNNER_TEMP/jdk25"
+          tar -xzf "$RUNNER_TEMP/jdk25.tar.gz" -C "$RUNNER_TEMP/jdk25" --strip-components=1
+          echo "JAVA_HOME=$RUNNER_TEMP/jdk25" >> "$GITHUB_ENV"
+          echo "$RUNNER_TEMP/jdk25/bin" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/jdk25/bin/java" -version
+          "$RUNNER_TEMP/jdk25/bin/javac" -version
 
       - name: Install Gradle 9.5.1
         shell: bash
         run: |
-          curl -fsSL https://services.gradle.org/distributions/gradle-9.5.1-bin.zip -o "$RUNNER_TEMP/gradle.zip"
+          set -euxo pipefail
+          curl -fL --retry 5 --retry-delay 2 \
+            "https://services.gradle.org/distributions/gradle-9.5.1-bin.zip" \
+            -o "$RUNNER_TEMP/gradle.zip"
           unzip -q "$RUNNER_TEMP/gradle.zip" -d "$RUNNER_TEMP"
           echo "$RUNNER_TEMP/gradle-9.5.1/bin" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/gradle-9.5.1/bin/gradle" --version
 
-      - name: Build
-        run: gradle build --stacktrace
+      - name: Build mod
+        shell: bash
+        run: |
+          set -euxo pipefail
+          gradle --no-daemon clean build --stacktrace
 
-      - name: Upload JARs
-        uses: actions/upload-artifact@v4
-        with:
-          name: anonmc-jars
-          path: build/libs/*.jar
+      - name: Verify JARs
+        shell: bash
+        run: |
+          set -euxo pipefail
+          test -n "$(find build/libs -maxdepth 1 -name '*.jar' -print -quit)"
+          ls -lh build/libs/*.jar
+
+      - name: Publish latest CI build
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euxo pipefail
+          if gh release view ci-latest --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release delete ci-latest --repo "$GITHUB_REPOSITORY" --cleanup-tag -y
+          fi
+          gh release create ci-latest build/libs/*.jar \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "AnonMC latest CI build" \
+            --notes "Automatically built from main by GitHub Actions. Commit: $GITHUB_SHA" \
+            --prerelease
