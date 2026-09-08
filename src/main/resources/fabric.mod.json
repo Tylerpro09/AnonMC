@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "id": "anonmc",
+  "version": "${version}",
+  "name": "AnonMC",
+  "description": "Anonimiza los nombres visibles de jugadores como Anonimo, Anonimo1, Anonimo2...",
+  "authors": ["Tylerpro09"],
+  "contact": {
+    "sources": "https://github.com/Tylerpro09/AnonMC"
+  },
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "io.github.tylerpro09.anonmc.client.AnonMcClient"
+    ]
+  },
+  "mixins": [
+    {
+      "config": "anonmc.client.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=0.19.5",
+    "minecraft": "~26.2",
+    "java": ">=25",
+    "fabric-api": "*"
+  }
+}

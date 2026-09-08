@@ -1,0 +1,13 @@
+{
+  "required": true,
+  "package": "io.github.tylerpro09.anonmc.mixin.client",
+  "compatibilityLevel": "JAVA_25",
+  "client": [
+    "PlayerMixin",
+    "PlayerTabOverlayMixin",
+    "ChatComponentMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
