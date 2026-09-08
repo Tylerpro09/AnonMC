@@ -21,10 +21,12 @@ jobs:
           distribution: temurin
           java-version: '25'
 
-      - name: Set up Gradle 9.5.1
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '9.5.1'
+      - name: Install Gradle 9.5.1
+        shell: bash
+        run: |
+          curl -fsSL https://services.gradle.org/distributions/gradle-9.5.1-bin.zip -o "$RUNNER_TEMP/gradle.zip"
+          unzip -q "$RUNNER_TEMP/gradle.zip" -d "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/gradle-9.5.1/bin" >> "$GITHUB_PATH"
 
       - name: Build
         run: gradle build --stacktrace
