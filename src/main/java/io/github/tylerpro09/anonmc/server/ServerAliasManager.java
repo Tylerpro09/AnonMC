@@ -72,9 +72,11 @@ public final class ServerAliasManager {
     }
 
     public static synchronized void broadcast(ServerPlayer cause) {
-        if (!AnonConfig.sharedServerAliases || cause.getServer() == null) return;
+        MinecraftServer server = cause.level().getServer();
+        if (!AnonConfig.sharedServerAliases || server == null) return;
+
         AliasSyncPayload payload = new AliasSyncPayload(Map.copyOf(ALIASES));
-        for (ServerPlayer player : cause.getServer().getPlayerList().getPlayers()) {
+        for (ServerPlayer player : server.getPlayerList().getPlayers()) {
             if (ServerPlayNetworking.canSend(player, AliasSyncPayload.TYPE)) {
                 ServerPlayNetworking.send(player, payload);
             }
