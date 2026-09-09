@@ -9,7 +9,14 @@ import java.util.Properties;
 
 public final class AnonConfig {
     private static final Path FILE = FabricLoader.getInstance().getConfigDir().resolve("anonmc.properties");
-    public static String aliasPrefix = "Anonimo";
+
+    /**
+     * Alias names are intentionally not configurable.
+     * The authoritative server assigns Anonimo, Anonimo1, Anonimo2...
+     * Clients never submit or choose their alias.
+     */
+    public static final String aliasPrefix = "Anonimo";
+
     public static boolean anonymizeSelf = true;
     public static boolean anonymousSkins = true;
     public static boolean sharedServerAliases = true;
@@ -25,7 +32,6 @@ public final class AnonConfig {
         if (Files.exists(FILE)) {
             try (var in = Files.newInputStream(FILE)) { p.load(in); } catch (IOException ignored) {}
         }
-        aliasPrefix = p.getProperty("aliasPrefix", aliasPrefix).trim();
         anonymizeSelf = Boolean.parseBoolean(p.getProperty("anonymizeSelf", Boolean.toString(anonymizeSelf)));
         anonymousSkins = Boolean.parseBoolean(p.getProperty("anonymousSkins", Boolean.toString(anonymousSkins)));
         sharedServerAliases = Boolean.parseBoolean(p.getProperty("sharedServerAliases", Boolean.toString(sharedServerAliases)));
@@ -38,7 +44,6 @@ public final class AnonConfig {
 
     public static void save() {
         Properties p = new Properties();
-        p.setProperty("aliasPrefix", aliasPrefix);
         p.setProperty("anonymizeSelf", Boolean.toString(anonymizeSelf));
         p.setProperty("anonymousSkins", Boolean.toString(anonymousSkins));
         p.setProperty("sharedServerAliases", Boolean.toString(sharedServerAliases));
@@ -48,7 +53,7 @@ public final class AnonConfig {
         p.setProperty("sanitizeCommandSuggestions", Boolean.toString(sanitizeCommandSuggestions));
         try {
             Files.createDirectories(FILE.getParent());
-            try (var out = Files.newOutputStream(FILE)) { p.store(out, "AnonMC configuration"); }
+            try (var out = Files.newOutputStream(FILE)) { p.store(out, "AnonMC configuration - aliases are server-controlled and cannot be changed by clients"); }
         } catch (IOException ignored) {}
     }
 }
