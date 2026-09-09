@@ -8,8 +8,8 @@ public final class AnonNetworking {
     private AnonNetworking() {}
 
     public static void registerPayloads() {
-        PayloadTypeRegistry.playS2C().register(AliasSyncPayload.TYPE, AliasSyncPayload.CODEC);
-        PayloadTypeRegistry.playC2S().register(HelloPayload.TYPE, HelloPayload.CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(AliasSyncPayload.TYPE, AliasSyncPayload.CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(HelloPayload.TYPE, HelloPayload.CODEC);
     }
 
     public static void registerServerReceivers() {
