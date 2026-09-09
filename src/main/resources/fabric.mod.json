@@ -3,17 +3,16 @@
   "id": "anonmc",
   "version": "${version}",
   "name": "AnonMC",
-  "description": "Anonimiza los nombres visibles de jugadores como Anonimo, Anonimo1, Anonimo2...",
+  "description": "Anonimiza identidades visibles y permite aliases compartidos gestionados por servidor.",
   "authors": ["Tylerpro09"],
   "contact": {
     "sources": "https://github.com/Tylerpro09/AnonMC"
   },
   "license": "MIT",
-  "environment": "client",
+  "environment": "*",
   "entrypoints": {
-    "client": [
-      "io.github.tylerpro09.anonmc.client.AnonMcClient"
-    ]
+    "main": ["io.github.tylerpro09.anonmc.AnonMc"],
+    "client": ["io.github.tylerpro09.anonmc.client.AnonMcClient"]
   },
   "mixins": [
     {

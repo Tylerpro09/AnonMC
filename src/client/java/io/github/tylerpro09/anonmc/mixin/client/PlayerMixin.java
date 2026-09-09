@@ -8,12 +8,11 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-/** Replaces the visible display name used by vanilla player name tags. */
 @Mixin(Player.class)
 public abstract class PlayerMixin {
     @Inject(method = "getDisplayName", at = @At("HEAD"), cancellable = true)
     private void anonmc$replaceDisplayName(CallbackInfoReturnable<Component> cir) {
-        Player self = (Player) (Object) this;
+        Player self = (Player)(Object)this;
         cir.setReturnValue(Component.literal(AliasRegistry.aliasFor(self.getUUID())));
     }
 }
