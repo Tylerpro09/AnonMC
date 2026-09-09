@@ -5,7 +5,8 @@
   "client": [
     "PlayerMixin",
     "PlayerTabOverlayMixin",
-    "ChatComponentMixin"
+    "ChatComponentMixin",
+    "AbstractClientPlayerMixin"
   ],
   "injectors": {
     "defaultRequire": 1
