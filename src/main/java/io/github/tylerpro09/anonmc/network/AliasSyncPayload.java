@@ -11,20 +11,50 @@ import java.util.Map;
 import java.util.UUID;
 
 public record AliasSyncPayload(Map<UUID, String> aliases) implements CustomPacketPayload {
-    public static final Type<AliasSyncPayload> TYPE = new Type<>(Identifier.fromNamespaceAndPath(AnonMc.MOD_ID, "alias_sync"));
+    private static final int MAX_ENTRIES = 2048;
+    private static final int MAX_ALIAS_LENGTH = 32;
+
+    public static final Type<AliasSyncPayload> TYPE =
+            new Type<>(Identifier.fromNamespaceAndPath(AnonMc.MOD_ID, "alias_sync"));
+
+    public AliasSyncPayload {
+        if (aliases.size() > MAX_ENTRIES) {
+            throw new IllegalArgumentException("Too many AnonMC aliases: " + aliases.size());
+        }
+        aliases = Map.copyOf(aliases);
+    }
+
     public static final StreamCodec<FriendlyByteBuf, AliasSyncPayload> CODEC = new StreamCodec<>() {
         @Override
         public AliasSyncPayload decode(FriendlyByteBuf buf) {
             int size = buf.readVarInt();
-            Map<UUID, String> map = new LinkedHashMap<>();
-            for (int i = 0; i < size; i++) map.put(buf.readUUID(), buf.readUtf(64));
+            if (size < 0 || size > MAX_ENTRIES) {
+                throw new IllegalArgumentException("Invalid AnonMC alias count: " + size);
+            }
+
+            Map<UUID, String> map = new LinkedHashMap<>(size);
+            for (int i = 0; i < size; i++) {
+                map.put(buf.readUUID(), buf.readUtf(MAX_ALIAS_LENGTH));
+            }
             return new AliasSyncPayload(map);
         }
+
         @Override
         public void encode(FriendlyByteBuf buf, AliasSyncPayload payload) {
+            if (payload.aliases.size() > MAX_ENTRIES) {
+                throw new IllegalArgumentException("Too many AnonMC aliases: " + payload.aliases.size());
+            }
+
             buf.writeVarInt(payload.aliases.size());
-            payload.aliases.forEach((uuid, alias) -> { buf.writeUUID(uuid); buf.writeUtf(alias, 64); });
+            payload.aliases.forEach((uuid, alias) -> {
+                buf.writeUUID(uuid);
+                buf.writeUtf(alias, MAX_ALIAS_LENGTH);
+            });
         }
     };
-    @Override public Type<? extends CustomPacketPayload> type() { return TYPE; }
+
+    @Override
+    public Type<? extends CustomPacketPayload> type() {
+        return TYPE;
+    }
 }
