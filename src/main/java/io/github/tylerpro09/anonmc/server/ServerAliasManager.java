@@ -7,7 +7,9 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 
+import java.security.SecureRandom;
 import java.util.LinkedHashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -15,9 +17,10 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public final class ServerAliasManager {
     private static final Map<UUID, String> ALIASES = new LinkedHashMap<>();
+    private static final Set<String> USED_ALIASES = new HashSet<>();
     private static final Set<UUID> MODDED_CLIENTS = ConcurrentHashMap.newKeySet();
     private static final Map<UUID, Integer> REQUIRE_CHECK_TICKS = new ConcurrentHashMap<>();
-    private static int nextIndex = 0;
+    private static final SecureRandom RANDOM = new SecureRandom();
 
     private ServerAliasManager() {}
 
@@ -38,9 +41,10 @@ public final class ServerAliasManager {
         MODDED_CLIENTS.remove(uuid);
         REQUIRE_CHECK_TICKS.remove(uuid);
 
-        // Remove the mapping when the player leaves so reconnecting receives
-        // a fresh alias. This prevents long-term correlation by alias.
-        ALIASES.remove(uuid);
+        String oldAlias = ALIASES.remove(uuid);
+        if (oldAlias != null) {
+            USED_ALIASES.remove(oldAlias);
+        }
 
         if (server != null) {
             broadcast(server);
@@ -75,24 +79,35 @@ public final class ServerAliasManager {
     }
 
     public static synchronized String aliasFor(UUID uuid) {
-        return ALIASES.computeIfAbsent(uuid, ignored -> {
-            int index = nextIndex++;
-            return index == 0 ? AnonConfig.aliasPrefix : AnonConfig.aliasPrefix + index;
-        });
+        return ALIASES.computeIfAbsent(uuid, ignored -> newUniqueAlias());
+    }
+
+    private static String newUniqueAlias() {
+        for (int attempt = 0; attempt < 100; attempt++) {
+            String alias = AnonConfig.aliasPrefix + (100000 + RANDOM.nextInt(900000));
+            if (USED_ALIASES.add(alias)) {
+                return alias;
+            }
+        }
+
+        // Extremely unlikely fallback if random collisions happen repeatedly.
+        String alias;
+        do {
+            alias = AnonConfig.aliasPrefix + UUID.randomUUID().toString().substring(0, 8);
+        } while (!USED_ALIASES.add(alias));
+        return alias;
     }
 
     public static synchronized void markClientModded(ServerPlayer player) {
         UUID uuid = player.getUUID();
         MODDED_CLIENTS.add(uuid);
         REQUIRE_CHECK_TICKS.remove(uuid);
-
-        // A hello packet is the first reliable proof that the client has AnonMC.
-        // Send a fresh authoritative snapshot immediately after the handshake.
         syncTo(player);
     }
 
     public static synchronized void syncTo(ServerPlayer player) {
         if (!AnonConfig.sharedServerAliases) return;
+
         if (ServerPlayNetworking.canSend(player, AliasSyncPayload.TYPE)) {
             ServerPlayNetworking.send(player, new AliasSyncPayload(Map.copyOf(ALIASES)));
         }
