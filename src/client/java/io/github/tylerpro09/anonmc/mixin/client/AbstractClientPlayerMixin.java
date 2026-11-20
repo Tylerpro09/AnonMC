@@ -1,6 +1,7 @@
 package io.github.tylerpro09.anonmc.mixin.client;
 
 import io.github.tylerpro09.anonmc.config.AnonConfig;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.core.ClientAsset;
 import net.minecraft.resources.Identifier;
@@ -32,8 +33,19 @@ public abstract class AbstractClientPlayerMixin {
 
     @Inject(method = "getSkin", at = @At("HEAD"), cancellable = true)
     private void anonmc$forceAnonymousSkin(CallbackInfoReturnable<PlayerSkin> cir) {
-        if (AnonConfig.anonymousSkins) {
-            cir.setReturnValue(ANONMC_SKIN);
+        if (!AnonConfig.anonymousSkins) {
+            return;
         }
+
+        AbstractClientPlayer self = (AbstractClientPlayer) (Object) this;
+        Minecraft minecraft = Minecraft.getInstance();
+
+        if (!AnonConfig.anonymizeSelf
+                && minecraft.player != null
+                && minecraft.player.getUUID().equals(self.getUUID())) {
+            return;
+        }
+
+        cir.setReturnValue(ANONMC_SKIN);
     }
 }
