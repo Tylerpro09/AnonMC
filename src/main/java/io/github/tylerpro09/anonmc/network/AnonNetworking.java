@@ -14,6 +14,6 @@ public final class AnonNetworking {
 
     public static void registerServerReceivers() {
         ServerPlayNetworking.registerGlobalReceiver(HelloPayload.TYPE, (payload, context) ->
-                ServerAliasManager.markClientModded(context.player().getUUID()));
+                ServerAliasManager.markClientModded(context.player()));
     }
 }
