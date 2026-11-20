@@ -15,11 +15,20 @@ public final class AnonMcClient implements ClientModInitializer {
 
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
             AliasRegistry.clear();
+
             if (ClientPlayNetworking.canSend(HelloPayload.TYPE)) {
-                String version = FabricLoader.getInstance().getModContainer("anonmc").map(c -> c.getMetadata().getVersion().getFriendlyString()).orElse("unknown");
-                ClientPlayNetworking.send(new HelloPayload(version));
+                String version = FabricLoader.getInstance()
+                        .getModContainer("anonmc")
+                        .map(c -> c.getMetadata().getVersion().getFriendlyString())
+                        .orElse("unknown");
+
+                ClientPlayNetworking.send(new HelloPayload(
+                        HelloPayload.PROTOCOL_VERSION,
+                        version
+                ));
             }
         });
+
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> AliasRegistry.clear());
     }
 }
