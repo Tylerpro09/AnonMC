@@ -23,16 +23,28 @@ public final class ServerAliasManager {
 
     public static synchronized void onJoin(ServerPlayer player) {
         aliasFor(player.getUUID());
-        broadcast(player);
+
+        MinecraftServer server = player.level().getServer();
+        if (server != null) {
+            broadcast(server);
+        }
+
         if (AnonConfig.requireClientMod) {
-            // Give the client five seconds (100 ticks) to complete the AnonMC hello handshake.
-            REQUIRE_CHECK_TICKS.put(player.getUUID(), 100);
+            REQUIRE_CHECK_TICKS.put(player.getUUID(), AnonConfig.requireClientModTimeoutTicks);
         }
     }
 
-    public static synchronized void onLeave(UUID uuid) {
+    public static synchronized void onLeave(MinecraftServer server, UUID uuid) {
         MODDED_CLIENTS.remove(uuid);
         REQUIRE_CHECK_TICKS.remove(uuid);
+
+        // Remove the mapping when the player leaves so reconnecting receives
+        // a fresh alias. This prevents long-term correlation by alias.
+        ALIASES.remove(uuid);
+
+        if (server != null) {
+            broadcast(server);
+        }
     }
 
     public static void tick(MinecraftServer server) {
@@ -40,6 +52,7 @@ public final class ServerAliasManager {
 
         for (Map.Entry<UUID, Integer> entry : REQUIRE_CHECK_TICKS.entrySet()) {
             UUID uuid = entry.getKey();
+
             if (MODDED_CLIENTS.contains(uuid)) {
                 REQUIRE_CHECK_TICKS.remove(uuid);
                 continue;
@@ -54,7 +67,9 @@ public final class ServerAliasManager {
             REQUIRE_CHECK_TICKS.remove(uuid);
             ServerPlayer player = server.getPlayerList().getPlayer(uuid);
             if (player != null) {
-                player.connection.disconnect(Component.literal("AnonMC is required on this server."));
+                player.connection.disconnect(Component.literal(
+                        "AnonMC is required on this server. Install a compatible AnonMC client."
+                ));
             }
         }
     }
@@ -66,13 +81,24 @@ public final class ServerAliasManager {
         });
     }
 
-    public static void markClientModded(UUID uuid) {
+    public static synchronized void markClientModded(ServerPlayer player) {
+        UUID uuid = player.getUUID();
         MODDED_CLIENTS.add(uuid);
         REQUIRE_CHECK_TICKS.remove(uuid);
+
+        // A hello packet is the first reliable proof that the client has AnonMC.
+        // Send a fresh authoritative snapshot immediately after the handshake.
+        syncTo(player);
     }
 
-    public static synchronized void broadcast(ServerPlayer cause) {
-        MinecraftServer server = cause.level().getServer();
+    public static synchronized void syncTo(ServerPlayer player) {
+        if (!AnonConfig.sharedServerAliases) return;
+        if (ServerPlayNetworking.canSend(player, AliasSyncPayload.TYPE)) {
+            ServerPlayNetworking.send(player, new AliasSyncPayload(Map.copyOf(ALIASES)));
+        }
+    }
+
+    public static synchronized void broadcast(MinecraftServer server) {
         if (!AnonConfig.sharedServerAliases || server == null) return;
 
         AliasSyncPayload payload = new AliasSyncPayload(Map.copyOf(ALIASES));
