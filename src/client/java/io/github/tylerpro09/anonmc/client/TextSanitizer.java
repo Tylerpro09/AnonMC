@@ -5,6 +5,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 
 import java.util.Locale;
 import java.util.Map;
@@ -15,25 +16,44 @@ public final class TextSanitizer {
     public static Component sanitize(Component original) {
         if (original == null) return Component.empty();
         if (!AnonConfig.sanitizeChat) return original;
+        return sanitizeIdentity(original);
+    }
 
-        ClientPacketListener connection = Minecraft.getInstance().getConnection();
-        if (connection != null) {
-            for (PlayerInfo info : connection.getOnlinePlayers()) {
-                AliasRegistry.observe(info);
-            }
-        }
+    /**
+     * Sanitizes only known player identities and preserves per-segment style,
+     * click events, hover events and colors by rebuilding from the flattened
+     * styled component stream.
+     */
+    public static Component sanitizeIdentity(Component original) {
+        if (original == null) return Component.empty();
+
+        refreshKnownPlayers();
 
         String raw = original.getString();
         String sanitized = replaceKnown(raw);
-
-        // Preserve the original rich component completely when no username was found.
         if (sanitized.equals(raw)) {
             return original;
         }
 
-        // Only messages that actually leak a username are rebuilt.
-        // Root styling is preserved; deeper interactive formatting may still be flattened.
-        return Component.literal(sanitized).setStyle(original.getStyle());
+        MutableComponent rebuilt = Component.empty();
+        for (Component part : original.toFlatList()) {
+            String partText = part.getString();
+            String replaced = replaceKnown(partText);
+            if (!replaced.isEmpty()) {
+                rebuilt.append(Component.literal(replaced).setStyle(part.getStyle()));
+            }
+        }
+
+        return rebuilt;
+    }
+
+    private static void refreshKnownPlayers() {
+        ClientPacketListener connection = Minecraft.getInstance().getConnection();
+        if (connection == null) return;
+
+        for (PlayerInfo info : connection.getOnlinePlayers()) {
+            AliasRegistry.observe(info);
+        }
     }
 
     public static String replaceKnown(String input) {
