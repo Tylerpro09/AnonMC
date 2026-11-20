@@ -18,8 +18,10 @@ public final class AnonMc implements ModInitializer {
 
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) ->
                 ServerAliasManager.onJoin(handler.getPlayer()));
+
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) ->
-                ServerAliasManager.onLeave(handler.getPlayer().getUUID()));
+                ServerAliasManager.onLeave(server, handler.getPlayer().getUUID()));
+
         ServerTickEvents.END_SERVER_TICK.register(ServerAliasManager::tick);
     }
 }
