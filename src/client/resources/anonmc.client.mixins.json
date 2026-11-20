@@ -6,7 +6,8 @@
     "PlayerMixin",
     "PlayerTabOverlayMixin",
     "ChatComponentMixin",
-    "AbstractClientPlayerMixin"
+    "AbstractClientPlayerMixin",
+    "PlayerTeamMixin"
   ],
   "injectors": {
     "defaultRequire": 1
