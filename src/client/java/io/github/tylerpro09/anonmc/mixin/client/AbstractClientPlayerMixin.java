@@ -18,7 +18,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(AbstractClientPlayer.class)
 public abstract class AbstractClientPlayerMixin {
     private static final String ANONMC_SKIN_URL =
-            "https://www.minecraftskins.com/uploads/skins/2023/10/01/signo-de-pregunta-x2-22013399.png?v695";
+            "https://www.minecraftskins.com/uploads/skins/2023/10/01/signo-de-pregunta-x2-22013399.png?v971";
 
     private static final Identifier ANONMC_SKIN_ID =
             Identifier.fromNamespaceAndPath("anonmc", "anonymous/question_skin");
