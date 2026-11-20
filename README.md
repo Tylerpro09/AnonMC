@@ -1,37 +1,63 @@
 # AnonMC
 
-AnonMC is a Fabric mod for Minecraft 26.2 that anonymizes visible player identity.
+AnonMC is a Fabric mod for Minecraft 26.2 focused on reducing visible player identity leaks in multiplayer.
 
-## 2.0.0
-- Configurable aliases through `config/anonmc.properties`
-- Shared aliases assigned by the server companion
-- Optional `requireClientMod=true` mode
-- Name-tag and TAB anonymization
-- Chat/system-message sanitization
-- Client/server synchronization protocol
+## 2.1.0
 
-## Config
+### Privacy improvements
+- Server-authoritative aliases: clients cannot choose or submit their alias.
+- Aliases use the fixed format `Anonimo`, `Anonimo1`, `Anonimo2`...
+- A player receives a fresh alias after disconnecting and reconnecting, reducing long-term correlation.
+- Shared alias snapshots are synchronized to compatible AnonMC clients.
+- The server sends a fresh authoritative snapshot immediately after the client handshake.
+- Optional server enforcement with `requireClientMod=true`.
+- Configurable handshake grace period through `requireClientModTimeoutTicks`.
+
+### Visible identity protection
+- Player name tags are anonymized.
+- TAB/player-list names are anonymized.
+- Known real usernames are sanitized from chat and system messages.
+- Messages that do not contain a username keep their original rich component unchanged.
+- Optional anonymous skin replacement using the project-selected question-mark skin.
+
+## Configuration
+
+The file is generated at `config/anonmc.properties`.
+
 ```properties
-aliasPrefix=Anonimo
 anonymizeSelf=true
 anonymousSkins=true
 sharedServerAliases=true
 requireClientMod=false
+requireClientModTimeoutTicks=100
 sanitizeChat=true
 sanitizeScoreboards=true
 sanitizeCommandSuggestions=true
 ```
 
-## Current privacy coverage
-The v2 core handles synchronized aliases, visible names and chat. The config keys for anonymous skins, scoreboard sanitization and command suggestion sanitization are included for the next rendering/UI hooks; they should not be treated as complete privacy coverage until those hooks are verified against 26.2 mappings.
+Alias names are deliberately **not configurable**. The authoritative server controls them.
 
-## Important privacy note
-AnonMC reduces visible identity leaks but is not cryptographic anonymity. UUIDs, server logs, packet inspection, voice chat and third-party mods can still reveal identity.
+`requireClientModTimeoutTicks=100` gives a client 5 seconds at 20 TPS to complete the AnonMC handshake. Accepted values are clamped between 20 and 1200 ticks.
+
+## Privacy model
+
+AnonMC reduces identity exposure in the normal game UI. It does not provide cryptographic anonymity. Server administrators, logs, packet inspection, voice chat, modified clients and third-party mods may still expose identity information.
 
 ## Requirements
-- Minecraft 26.2
+
+- Minecraft Java Edition 26.2
 - Fabric Loader 0.19.5+
-- Fabric API
+- Fabric API 0.159.0+26.2
 - Java 25
+
+## Build
+
+Use Java 25 and run:
+
+```powershell
+gradle clean build
+```
+
+The JAR will be generated under `build/libs/`.
 
 MIT License.
